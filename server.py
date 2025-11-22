@@ -6,36 +6,36 @@ import os
 
 app = FastAPI()
 
-
-
 def write_cookies_from_env():
     cookies_env = os.getenv("YT_COOKIES")
     if not cookies_env:
         return None
 
-    tmp_path = "/tmp/yt_cookies.txt"
-    with open(tmp_path, "w") as f:
-        f.write(cookies_env.replace("\\n", "\n"))  # важное преобразование
-    return tmp_path
+    # Создаем путь в /tmp
+    cookies_path = "/tmp/yt_cookies.txt"
 
+    # Записываем с заменой \n -> настоящий перенос строки
+    with open(cookies_path, "w") as f:
+        f.write(cookies_env.replace("\\n", "\n"))
+
+    return cookies_path
 
 
 @app.get("/audio")
 async def extract_audio(url: str = Query(...)):
     try:
-        cookies_data = os.environ.get("YT_COOKIES")
-        if not cookies_data:
+        # создаём cookies-файл
+        cookies_file_path = write_cookies_from_env()
+        if not cookies_file_path:
             return JSONResponse({"error": "YT_COOKIES not found"}, status_code=500)
 
-        # создаём временный файл cookies в /tmp
-        with tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt") as tmp:
-            tmp.write(cookies_data.replace("\\n", "\n"))
-            cookies_file_path = tmp.name
-
+        # yt-dlp параметры
         ydl_opts = {
             "format": "bestaudio/best",
-            "outtmpl": "/tmp/audio.%(ext)s",
             "cookiefile": cookies_file_path,
+            "nocheckcertificate": True,
+            "extract_flat": False,
+            "quiet": False,
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -44,7 +44,7 @@ async def extract_audio(url: str = Query(...)):
             if "url" in info:
                 return {"audio_url": info["url"]}
             else:
-                return JSONResponse({"error": "audio URL not found"}, status_code=500)
+                return JSONResponse({"error": "Audio URL not found"}, status_code=500)
 
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
