@@ -6,6 +6,20 @@ import os
 
 app = FastAPI()
 
+
+
+def write_cookies_from_env():
+    cookies_env = os.getenv("YT_COOKIES")
+    if not cookies_env:
+        return None
+
+    tmp_path = "/tmp/yt_cookies.txt"
+    with open(tmp_path, "w") as f:
+        f.write(cookies_env.replace("\\n", "\n"))  # важное преобразование
+    return tmp_path
+
+
+
 @app.get("/audio")
 async def extract_audio(url: str = Query(...)):
     try:
@@ -15,7 +29,7 @@ async def extract_audio(url: str = Query(...)):
 
         # создаём временный файл cookies в /tmp
         with tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt") as tmp:
-            tmp.write(cookies_data)
+            tmp.write(cookies_data.replace("\\n", "\n"))
             cookies_file_path = tmp.name
 
         ydl_opts = {
