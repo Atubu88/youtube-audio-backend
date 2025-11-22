@@ -11,14 +11,22 @@ def write_cookies_from_env():
     if not cookies_env:
         return None
 
-    # Создаем путь в /tmp
     cookies_path = "/tmp/yt_cookies.txt"
 
-    # Записываем с заменой \n -> настоящий перенос строки
+    # Нормализация содержимого
+    cookies_clean = (
+        cookies_env
+        .replace("\r", "")      # убрать Windows-переносы
+        .replace("\\n", "\n")   # если Render превратил переносы в \n
+        .strip()                # убрать пустые строки
+    )
+
+    # Запись cookie-файла
     with open(cookies_path, "w") as f:
-        f.write(cookies_env.replace("\\n", "\n"))
+        f.write(cookies_clean)
 
     return cookies_path
+
 
 
 @app.get("/audio")
